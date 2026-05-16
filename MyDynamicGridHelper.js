@@ -20,7 +20,56 @@ class MyDynamicGridHelper {
         this.camera = null; // Ссылка на камеру
         this.controls = null; // Ссылка на контролы
         this.texts = []
+        this.isPressedMouseLeft = false
+
+        this.cross_pointer= new Cross(4)
     }
+
+    handleMouseDown(event) {
+        if (event.button === 0) { // Проверяем, что нажата именно ЛЕВАЯ кнопка
+            this.isPressedMouseLeft = true;
+        }
+    }
+
+    handleMouseUp(event) {
+        if (event.button === 0) { // Проверяем, что нажата именно ЛЕВАЯ кнопка
+            this.isPressedMouseLeft = false;
+        }
+    }
+
+
+    handleMouseWheel(event) {
+
+        this.cross_pointer.scale.set(1 / this.camera.zoom, 1 / this.camera.zoom,1)
+
+        this.handleMouseMove(event)
+    }
+
+
+
+    handleMouseMove(event) {
+
+        if (!this.isInitialized) return
+
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        let mouse_x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        let mouse_y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        let cx = this.controls.target.x// this.camera.zoom;
+        let cy = this.controls.target.y//this.camera.zoom;
+
+        const x = cx + mouse_x * rect.width  / 2 /this.camera.zoom
+        const y = cy + mouse_y * rect.height / 2 /this.camera.zoom
+
+        this.cross_pointer.position.set(x , y, 0)
+
+        this.infoUpdate(x,y)
+
+
+        if (this.isPressedMouseLeft) {
+        }
+    }
+
 
     // Метод для установки камеры и контролов
     setCameraAndControls(camera, controls, renderer, group) {
@@ -29,6 +78,8 @@ class MyDynamicGridHelper {
         this.group = group;
         this.renderer = renderer;
         this.isInitialized = true; // Теперь можно обновлять
+
+        this.group.add(this.cross_pointer)
         this.update(); // Первичный рендер сетки
     }
 
@@ -41,8 +92,11 @@ class MyDynamicGridHelper {
     }
 
 
-    infoUpdate(x, y, zoom) {
+    infoUpdate(x, y) {
         if (!this.isInitialized) return
+
+
+
         document.getElementById('coord-valueX').textContent = `${x.toFixed(3)}`
         document.getElementById('coord-valueY').textContent = `${y.toFixed(3)}`
         document.getElementById('coord-valueZoom').textContent = `${(this.camera.zoom).toFixed(6)}`
@@ -284,6 +338,33 @@ class MyDynamicGridHelper {
     }
 }
 
+function Cross(size,zoom = 1, color = 0xFF0000){
+
+    let vertices = [
+        -size,size,0,
+        size,-size,0,
+        -size,-size,0,
+        size,size,0
+    ]
+
+    let colorTHREE = new THREE.Color(color)
+    let colors =[]
+    colorTHREE.toArray(colors, 0)
+    colorTHREE.toArray(colors, 3)
+    colorTHREE.toArray(colors, 6)
+    colorTHREE.toArray(colors, 9)
+
+    let geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    let material = new THREE.LineBasicMaterial({vertexColors: true});
+
+    let cross;
+    cross = new THREE.LineSegments(geometry, material);
+    //cross.name = 'GridHelper'
+    return cross
+}
+
 function triangle(zoom, dir = 'V'  ) {
 
     const geometry = new THREE.BufferGeometry()
@@ -301,14 +382,11 @@ function triangle(zoom, dir = 'V'  ) {
         0.0, 0.0, 0.0 // v4
     ];
 
-
-
     let vertices = dir === 'V'? verticesV: verticesH
 
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     const material = new THREE.MeshBasicMaterial({color: 0x7d0db5});
     let m = new THREE.Mesh(geometry, material)
-
 
     m.name = 'GridHelper'
     return m
