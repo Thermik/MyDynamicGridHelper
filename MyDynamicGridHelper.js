@@ -23,12 +23,21 @@ class MyDynamicGridHelper {
     }
 
     // Метод для установки камеры и контролов
-    setCameraAndControls(camera, controls, group) {
+    setCameraAndControls(camera, controls, renderer, group) {
         this.camera = camera;
         this.controls = controls;
         this.group = group;
+        this.renderer = renderer;
         this.isInitialized = true; // Теперь можно обновлять
         this.update(); // Первичный рендер сетки
+    }
+
+
+    setEventListener(event, handleChange) {
+
+        if (event === 'end') this.controls.addEventListener(event, handleChange)
+        if (event === 'change') this.controls.addEventListener(event, handleChange)
+
     }
 
 
@@ -37,6 +46,14 @@ class MyDynamicGridHelper {
         document.getElementById('coord-valueX').textContent = `${x.toFixed(3)}`
         document.getElementById('coord-valueY').textContent = `${y.toFixed(3)}`
         document.getElementById('coord-valueZoom').textContent = `${(this.camera.zoom).toFixed(6)}`
+
+        const rect = this.renderer.domElement.getBoundingClientRect();
+
+        this.pH.position.set(x,(rect.height / 2 - 22)/this.camera.zoom,6)
+        this.pV.position.set(-(rect.width /2 - 22)/this.camera.zoom,y,6)
+
+
+
     }
 
     // Метод для перерисовки сетки
@@ -58,9 +75,9 @@ class MyDynamicGridHelper {
         let windowB = this.camera.bottom / this.camera.zoom + centerY;
 
 
-        let step = calculateGridStep(this.camera.zoom,this.step)
+        let step = calculateGridStep(this.camera.zoom, this.step)
 
-        function calculateGridStep(zoom,step = 100) {
+        function calculateGridStep(zoom, step = 100) {
             const baseGridStep = step;
 
             let gridStep;
@@ -71,7 +88,7 @@ class MyDynamicGridHelper {
                 let currentZoomThreshold = 0.5;
 
                 if (zoom < 1.0) {
-                    while (zoom < currentZoomThreshold && currentZoomThreshold ) {
+                    while (zoom < currentZoomThreshold && currentZoomThreshold) {
                         multiplications++;
                         currentZoomThreshold /= 2;
                     }
@@ -84,27 +101,22 @@ class MyDynamicGridHelper {
             } else if (zoom >= 8.0 && zoom < 10.0) {
                 exponent = Math.floor(Math.log2(4));
                 gridStep = baseGridStep / Math.pow(2, exponent);
-            }else if (zoom >= 10.0 && zoom < 20.0) {
+            } else if (zoom >= 10.0 && zoom < 20.0) {
                 exponent = Math.floor(Math.log10(10));
                 gridStep = baseGridStep / Math.pow(10, exponent);
-            }else if (zoom >= 20.0 && zoom < 50.0) {
+            } else if (zoom >= 20.0 && zoom < 50.0) {
                 exponent = Math.floor(Math.log10(20));
                 gridStep = baseGridStep / Math.pow(20, exponent);
-            }
-            else if (zoom >= 50.0 && zoom < 100.0) {
+            } else if (zoom >= 50.0 && zoom < 100.0) {
                 exponent = Math.floor(Math.log10(50));
                 gridStep = baseGridStep / Math.pow(50, exponent);
-            }
-            else if (zoom >= 100 && zoom < 200 ) {
+            } else if (zoom >= 100 && zoom < 200) {
                 gridStep = 1
-            }
-            else if (zoom >= 200 && zoom < 500 ) {
+            } else if (zoom >= 200 && zoom < 500) {
                 gridStep = 0.5
-            }
-            else if (zoom >= 500 && zoom < 1000  ) {
+            } else if (zoom >= 500 && zoom < 1000) {
                 gridStep = 0.2
-            }
-            else if (zoom >= 1000  ) {
+            } else if (zoom >= 1000) {
                 gridStep = 0.1
             }
 
@@ -142,7 +154,7 @@ class MyDynamicGridHelper {
             itext.position.x = x
             itext.position.y = y
             itext.position.z = z
-            itext.renderOrder = 1000
+            itext.renderOrder = 0
             itext.sync()
 
             return itext
@@ -257,7 +269,48 @@ class MyDynamicGridHelper {
         spriteC.name = 'GridHelper'
         spriteC.renderOrder = 1
         this.group.add(spriteC)
+
+        this.pH = triangle(this.camera.zoom, 'V')
+        this.pH.position.set(0, windowT - 22 / this.camera.zoom, 6)
+        this.group.add(this.pH)
+
+
+        this.pV = triangle(this.camera.zoom, 'H')
+        this.pV.position.set(windowL + 22 / this.camera.zoom, 0, 6)
+        this.group.add(this.pV)
+
+
     }
+}
+
+function triangle(zoom, dir = 'V'  ) {
+
+    const geometry = new THREE.BufferGeometry()
+    const verticesV = [
+        0.0, 0.0, 5.0, // v0
+        0.55 * 8 / zoom, 8 / zoom, 0.0, // v1
+        -0.55 * 8 / zoom, 8 / zoom, 0.0, // v1
+        0.0, 0.0, 0.0 // v4
+    ];
+
+    const verticesH = [
+        0.0, 0.0, 5.0, // v0
+        -8 / zoom,  0.55 * 8 / zoom,  0.0, // v1
+        -8 / zoom,   -0.55 * 8 / zoom, 0.0, // v1
+        0.0, 0.0, 0.0 // v4
+    ];
+
+
+
+    let vertices = dir === 'V'? verticesV: verticesH
+
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    const material = new THREE.MeshBasicMaterial({color: 0x7d0db5});
+    let m = new THREE.Mesh(geometry, material)
+
+
+    m.name = 'GridHelper'
+    return m
 }
 
 
@@ -267,6 +320,7 @@ function removefromGroup(group, item) {
             if (group.children[i].name.slice(0, child_name.length) === child_name) group.remove(group.children[i]);
         }
     }
+
     remove(item)
 }
 
