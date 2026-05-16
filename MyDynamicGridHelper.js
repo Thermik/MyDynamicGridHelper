@@ -48,9 +48,10 @@ class MyDynamicGridHelper {
         document.getElementById('coord-valueZoom').textContent = `${(this.camera.zoom).toFixed(6)}`
 
         const rect = this.renderer.domElement.getBoundingClientRect();
+        let p = getPosition(this)
 
-        this.pH.position.set(x,(rect.height / 2 - 22)/this.camera.zoom,6)
-        this.pV.position.set(-(rect.width /2 - 22)/this.camera.zoom,y,6)
+        this.pH.position.set(x,(rect.height / 2 - 22)/this.camera.zoom +p.y,6)
+        this.pV.position.set(-(rect.width /2 - 22)/this.camera.zoom+p.x,y,6)
 
 
 
@@ -311,6 +312,19 @@ function triangle(zoom, dir = 'V'  ) {
 
     m.name = 'GridHelper'
     return m
+}
+
+
+function getPosition(s){
+
+        return {
+        l: s.camera.left,
+        r: s.camera.right,
+        t: s.camera.top,
+        b: s.camera.bottom,
+        x: s.controls.target.x,
+        y: s.controls.target.y
+    }
 }
 
 
