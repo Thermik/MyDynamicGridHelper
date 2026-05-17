@@ -22,52 +22,48 @@ class MyDynamicGridHelper {
         this.texts = []
         this.isPressedMouseLeft = false
 
-        this.cross_pointer= new Cross(4)
+        this.cross_pointer = new Cross(4)
     }
 
     handleMouseDown(event) {
+        if (!this.isInitialized) return undefined
+
         if (event.button === 0) { // Проверяем, что нажата именно ЛЕВАЯ кнопка
             this.isPressedMouseLeft = true;
         }
+        return get_xy(event, this)
     }
 
     handleMouseUp(event) {
+        if (!this.isInitialized) return undefined
+
         if (event.button === 0) { // Проверяем, что нажата именно ЛЕВАЯ кнопка
             this.isPressedMouseLeft = false;
         }
+        return get_xy(event, this)
     }
 
 
     handleMouseWheel(event) {
+        if (!this.isInitialized) return undefined
 
-        this.cross_pointer.scale.set(1 / this.camera.zoom, 1 / this.camera.zoom,1)
-
+        this.cross_pointer.scale.set(1 / this.camera.zoom, 1 / this.camera.zoom, 1)
         this.handleMouseMove(event)
-    }
+        return get_xy(event, this)
 
+    }
 
 
     handleMouseMove(event) {
 
-        if (!this.isInitialized) return
+        if (!this.isInitialized) return undefined
 
-        const rect = this.renderer.domElement.getBoundingClientRect();
-        let mouse_x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        let mouse_y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-        let cx = this.controls.target.x// this.camera.zoom;
-        let cy = this.controls.target.y//this.camera.zoom;
-
-        const x = cx + mouse_x * rect.width  / 2 /this.camera.zoom
-        const y = cy + mouse_y * rect.height / 2 /this.camera.zoom
-
-        this.cross_pointer.position.set(x , y, 0)
-
-        this.infoUpdate(x,y)
+        let p = get_xy(event, this)
+        this.cross_pointer.position.set(p.x, p.y, 0)
+        this.infoUpdate(p.x, p.y)
+        return p
 
 
-        if (this.isPressedMouseLeft) {
-        }
     }
 
 
@@ -85,17 +81,13 @@ class MyDynamicGridHelper {
 
 
     setEventListener(event, handleChange) {
-
         if (event === 'end') this.controls.addEventListener(event, handleChange)
         if (event === 'change') this.controls.addEventListener(event, handleChange)
-
     }
 
 
     infoUpdate(x, y) {
         if (!this.isInitialized) return
-
-
 
         document.getElementById('coord-valueX').textContent = `${x.toFixed(3)}`
         document.getElementById('coord-valueY').textContent = `${y.toFixed(3)}`
@@ -104,11 +96,8 @@ class MyDynamicGridHelper {
         const rect = this.renderer.domElement.getBoundingClientRect();
         let p = getPosition(this)
 
-        this.pH.position.set(x,(rect.height / 2 - 22)/this.camera.zoom +p.y,6)
-        this.pV.position.set(-(rect.width /2 - 22)/this.camera.zoom+p.x,y,6)
-
-
-
+        this.pH.position.set(x, (rect.height / 2 - 22) / this.camera.zoom + p.y, 6)
+        this.pV.position.set(-(rect.width / 2 - 22) / this.camera.zoom + p.x, y, 6)
     }
 
     // Метод для перерисовки сетки
@@ -250,7 +239,6 @@ class MyDynamicGridHelper {
                 this.grid_color.toArray(colors10, colorIndex10);
                 colorIndex10 += 3;
             }
-
         }
 
 
@@ -333,22 +321,20 @@ class MyDynamicGridHelper {
         this.pV = triangle(this.camera.zoom, 'H')
         this.pV.position.set(windowL + 22 / this.camera.zoom, 0, 6)
         this.group.add(this.pV)
-
-
     }
 }
 
-function Cross(size,zoom = 1, color = 0xFF0000){
+function Cross(size, zoom = 1, color = 0xFF0000) {
 
     let vertices = [
-        -size,size,0,
-        size,-size,0,
-        -size,-size,0,
-        size,size,0
+        -size, size, 0,
+        size, -size, 0,
+        -size, -size, 0,
+        size, size, 0
     ]
 
     let colorTHREE = new THREE.Color(color)
-    let colors =[]
+    let colors = []
     colorTHREE.toArray(colors, 0)
     colorTHREE.toArray(colors, 3)
     colorTHREE.toArray(colors, 6)
@@ -365,7 +351,7 @@ function Cross(size,zoom = 1, color = 0xFF0000){
     return cross
 }
 
-function triangle(zoom, dir = 'V'  ) {
+function triangle(zoom, dir = 'V') {
 
     const geometry = new THREE.BufferGeometry()
     const verticesV = [
@@ -377,12 +363,12 @@ function triangle(zoom, dir = 'V'  ) {
 
     const verticesH = [
         0.0, 0.0, 5.0, // v0
-        -8 / zoom,  0.55 * 8 / zoom,  0.0, // v1
-        -8 / zoom,   -0.55 * 8 / zoom, 0.0, // v1
+        -8 / zoom, 0.55 * 8 / zoom, 0.0, // v1
+        -8 / zoom, -0.55 * 8 / zoom, 0.0, // v1
         0.0, 0.0, 0.0 // v4
     ];
 
-    let vertices = dir === 'V'? verticesV: verticesH
+    let vertices = dir === 'V' ? verticesV : verticesH
 
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     const material = new THREE.MeshBasicMaterial({color: 0x7d0db5});
@@ -393,9 +379,23 @@ function triangle(zoom, dir = 'V'  ) {
 }
 
 
-function getPosition(s){
+function get_xy(event, s) {
+    const rect = s.renderer.domElement.getBoundingClientRect();
+    let mouse_x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    let mouse_y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-        return {
+    let cx = s.controls.target.x
+    let cy = s.controls.target.y
+
+    const x = cx + mouse_x * rect.width / 2 / s.camera.zoom
+    const y = cy + mouse_y * rect.height / 2 / s.camera.zoom
+
+    return {x: x, y: y, p: getPosition(s)}
+}
+
+function getPosition(s) {
+
+    return {
         l: s.camera.left,
         r: s.camera.right,
         t: s.camera.top,
@@ -404,7 +404,6 @@ function getPosition(s){
         y: s.controls.target.y
     }
 }
-
 
 function removefromGroup(group, item) {
     function remove(child_name) {
@@ -431,5 +430,80 @@ function trimNumberToString(num) {
     }
 }
 
+class MyRect {
+    constructor(color = 0xFF0000) {
+        this.vertices = []
 
-export {MyDynamicGridHelper}
+        this.vertices.push(  0, 0, 0  );
+        this.vertices.push(  0, 0, 0 ) ;
+        this.vertices.push(  0, 0, 0 ) ;
+        this.vertices.push(  0, 0, 0 ) ;
+        this.vertices.push(  0, 0, 0 ) ;
+
+        this.geometry = new THREE.BufferGeometry()//.setFromPoints(this.vertices );
+
+        this.geometry.setAttribute('position', new THREE.Float32BufferAttribute(this.vertices, 3));
+
+//        this.material = new THREE.LineBasicMaterial({ color: color });
+
+        this.material = new THREE.LineDashedMaterial( {
+            color: color,
+            scale: 1,
+            dashSize: 3,
+            gapSize: 2,
+        } );
+
+        this.rect = new THREE.Line(this.geometry, this.material);
+        this.rect.name = 'Rect'
+        this.rect.computeLineDistances();
+    }
+
+    dispose() {
+
+        if (this.geometry) {
+            this.geometry.dispose();
+            this.geometry = null;
+        }
+        if (this.material) {
+            this.material.dispose();
+            this.material = null;
+        }
+
+    }
+
+    update(coner1, coner2, zoom =1){
+
+        this.vertices[0] = coner1.x
+        this.vertices[1] = coner1.y
+
+        this.vertices[3] = coner2.x
+        this.vertices[4] = coner1.y
+
+        this.vertices[6] = coner2.x
+        this.vertices[7] = coner2.y
+
+        this.vertices[9] = coner1.x
+        this.vertices[10] = coner2.y
+
+        this.vertices[12] = coner1.x
+        this.vertices[13] = coner1.y
+
+        this.rect.geometry.setAttribute('position', new THREE.Float32BufferAttribute(this.vertices, 3));
+        this.rect.geometry.attributes.position.needsUpdate = true
+
+        this.updateDash(zoom)
+
+    }
+
+    updateDash(zoom){
+        this.rect.material.dashSize = 3/zoom
+        this.rect.material.gapSize = 2/zoom
+
+        this.rect.computeLineDistances();
+
+    }
+
+}
+
+
+export {MyDynamicGridHelper, MyRect}
